@@ -1,0 +1,25 @@
+---
+abstract: 'Library agnostic document creation'
+author:
+  - 'Cory G Watson <gphat@cpan.org>'
+build_requires:
+  Pod::Coverage::Moose: 0
+  Test::More: 0
+distribution_type: module
+generated_by: 'Module::Install version 0.75'
+license: perl
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.3.html
+  version: 1.3
+name: Document-Writer
+no_index:
+  directory:
+    - inc
+    - t
+requires:
+  Forest: 0.02
+  Layout::Manager: 0.10
+  Moose: 0.54
+  MooseX::AttributeHelpers: 0.12
+  Paper::Specs: 0.10
+version: 0.01
