@@ -15,7 +15,7 @@ use Graphics::Color::RGB;
 has 'body' => (
     is => 'rw',
     isa => 'Graphics::Primitive::Component',
-    lazy => 1,
+    # lazy => 1,
     default => sub {
         my ($self) = @_;
 
@@ -28,31 +28,10 @@ has 'color' => (
     is => 'rw',
     isa => 'Graphics::Color',
 );
-has '+components' => (
-    lazy => 1,
-    default => sub {
-        my ($self) = @_;
-
-        return [
-            {
-                component   => $self->header,
-                args        => 'n',
-            },
-            {
-                component   => $self->footer,
-                args        => 's'
-            },
-            {
-                component   => $self->body,
-                args        => 'c'
-            }
-        ];
-    }
-);
 has 'footer' => (
     is => 'rw',
     isa => 'Graphics::Primitive::Component',
-    lazy => 1,
+    # lazy => 1,
     default => sub {
         my ($self) = @_;
 
@@ -65,7 +44,7 @@ has 'footer' => (
 has 'header' => (
     is => 'rw',
     isa => 'Graphics::Primitive::Component',
-    lazy => 1,
+    # lazy => 1,
     default => sub {
         my ($self) = @_;
 
@@ -80,6 +59,14 @@ has 'header' => (
 # });
 has '+layout_manager' => ( default => sub { Layout::Manager::Compass->new });
 has '+page' => ( default => sub { 1 });
+
+sub BUILD {
+    my ($self) = @_;
+
+    $self->add_component($self->header, 'n');
+    $self->add_component($self->footer, 's');
+    $self->add_component($self->body, 'c');
+}
 
 override('prepare', sub {
     my ($self, $driver) = @_;
@@ -105,14 +92,34 @@ Document::Writer::Page - A page in a document
 
 =head1 SYNOPSIS
 
-Quick summary of what the module does.
-
-Perhaps a little code snippet.
-
     use Document::Writer;
 
-    my $foo = Document::Writer->new();
+    my $doc = Document::Writer->new(default_color => ...);
+    my $p = $doc->next_page($width, $height);
+    $p->add_text_to_page($driver, $font, $text);
     ...
+
+=head1 METHODS
+
+=over 4
+
+=item I<body>
+
+Set/Get this page's body container.
+
+=item I<footer>
+
+Set/Get this page's footer component.
+
+=item I<header>
+
+Set/Get this page's footer component.
+
+=item I<BUILD>
+
+Moose hackery, ignore me.
+
+=back
 
 =head1 AUTHOR
 
