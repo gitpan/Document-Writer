@@ -71,6 +71,12 @@ sub BUILD {
 override('prepare', sub {
     my ($self, $driver) = @_;
 
+    $self->component_list->clear;
+
+    $self->add_component($self->header, 'n');
+    $self->add_component($self->footer, 's');
+    $self->add_component($self->body, 'c');
+
     if(defined($self->header) && !$self->header->minimum_width) {
         $self->header->minimum_width($self->inside_width + $self->header->outside_width);
     }

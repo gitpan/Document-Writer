@@ -24,4 +24,4 @@ requires:
   MooseX::AttributeHelpers: 0.12
   Paper::Specs: 0.10
   Text::Flow: 0.01
-version: 0.04
+version: 0.05
