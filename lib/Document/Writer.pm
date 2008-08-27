@@ -6,10 +6,11 @@ use Carp;
 use Forest;
 use Paper::Specs units => 'pt';
 
+use Document::Writer::Page;
 use Document::Writer::TextLayout;
 
 our $AUTHORITY = 'cpan:GPHAT';
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 has 'default_color' => (
     is => 'rw',
@@ -73,10 +74,9 @@ sub add_text_to_page {
 
         if($lines->{size} <= 0) {
             # If we get back nothing then we must've asked for a size too
-            # small to get back data.  Make a new page
+            # small to get back data.  Make a new page.  This will eventually
+            # cause an endless loop...
             $curr_page = $self->next_page;
-            # $curr_page->prepare;
-            # $curr_page->layout_manager->do_layout($curr_page);
             next;
         }
 
