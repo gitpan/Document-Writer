@@ -10,7 +10,7 @@ use Document::Writer::Page;
 use Document::Writer::TextLayout;
 
 our $AUTHORITY = 'cpan:GPHAT';
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 has 'default_color' => (
     is => 'rw',
@@ -168,7 +168,7 @@ sub draw {
         if($p->layout_manager) {
             $p->layout_manager->do_layout($p);
         }
-        $driver->pack($p);
+        $driver->finalize($p);
         $driver->reset;
         $driver->draw($p);
     }
