@@ -1,5 +1,12 @@
 Revision history for Document-Writer
 
+0.09
+  - Rewrite to use TextLayout
+  - Switch to storing a simplified representation of the document, save
+    actual G:P emission until draw
+  - Make immutable
+  - Remove Text::Flow dependency
+
 0.08
   - Keep up with Graphics::Primitive API changes
 

@@ -9,14 +9,11 @@ build_requires 'Test::More';
 test_requires 'Pod::Coverage::Moose';
 
 requires 'Forest' => '0.02';
-requires 'Graphics::Primitive' => '0.29';
-requires 'Layout::Manager' => '0.16';
+requires 'Graphics::Primitive' => '0.33';
+requires 'Layout::Manager' => '0.18';
 requires 'Moose' => '0.57';
 requires 'MooseX::AttributeHelpers' => '0.13';
 requires 'Paper::Specs' => '0.10';
-requires 'Text::Flow' => '0.01';
-
-auto_install;
 
 WriteAll;
 
