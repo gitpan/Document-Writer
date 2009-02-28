@@ -17,10 +17,10 @@ no_index:
     - inc
     - t
 requires:
-  Forest: 0.02
-  Graphics::Primitive: 0.33
-  Layout::Manager: 0.18
-  Moose: 0.57
-  MooseX::AttributeHelpers: 0.13
+  Forest: 0.06
+  Graphics::Primitive: 0.39
+  Layout::Manager: 0.20
+  Moose: 0.72
+  MooseX::AttributeHelpers: 0.14
   Paper::Specs: 0.10
-version: 0.09
+version: 0.10

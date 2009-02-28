@@ -9,7 +9,7 @@ use Paper::Specs units => 'pt';
 use Document::Writer::Page;
 
 our $AUTHORITY = 'cpan:GPHAT';
-our $VERSION = '0.09';
+our $VERSION = '0.10';
 
 has 'components' => (
     metaclass => 'Collection::Array',
@@ -41,87 +41,68 @@ sub draw {
         $driver->prepare($c);
 
         if($c->isa('Document::Writer::Page')) {
-            # $driver->prepare($c);
             $c->layout_manager->do_layout($c);
-
             push(@pages, $c);
-        } else {
-            #  Seed the current page
-            my $currpage = $pages[-1];
+        } elsif($c->isa('Document::Writer::TextArea')) {
+            my $page = $self->last_page;
 
-            die('First component must be a Page') unless defined($currpage);
+            my $avail = $page->body->inside_height - $page->body->layout_manager->used->[1];
+            $c->width($page->body->inside_width);
 
-            if($c->isa('Document::Writer::TextArea')) {
-                $c->width($currpage->inside_width);
-                my $layout = $driver->get_textbox_layout($c);
-                my $lh = $layout->height;
+            my $tl = $driver->get_textbox_layout($c);
 
-                my $used = 0;
+            my $tlh = $tl->height;
+            my $used = 0;
 
-                while($used < $lh) {
-                    my $avail = $currpage->body->inside_height
-                        - $currpage->body->layout_manager->used->[1];
-                    if($avail == 0) {
-                        $currpage = $self->add_page_break($driver);
-                        push(@pages, $currpage);
-                        $driver->prepare($currpage);
-                        $currpage->layout_manager->do_layout($currpage);
-                        $avail = $currpage->body->inside_height
-                            - $currpage->body->layout_manager->used->[1];
-                        next;
-                    }
-
-                    if($avail > $layout->height) {
-                        my $tb = $layout->slice($used);
-                        $currpage->body->add_component($tb);
-
-                        $used += $tb->minimum_height;
-                    } else {
-                        # print "B\n";
-                        my $tb = $layout->slice($used, $avail);
-                        # print "AXXX: $used $avail\n";
-                        # print "MH: ".$tb->minimum_height."\n";
-                        $currpage->body->add_component($tb);
-                        $used += $tb->minimum_height;
-                    }
-                    $driver->prepare($currpage);
-                    $currpage->layout_manager->do_layout($currpage);
-                    $currpage = $self->add_page_break($driver);
+            # So.  We need to 'use' all of the TextLayout we got.  The height
+            # is $tlh and we have $avail space available on the page.
+            while($used < $tlh) {
+                # We've not yet used all of the TextLayout
+                if(($avail <= 0) || ($avail < $tlh)) {
+                    # If we ran out of available space then we need to add a
+                    # new page.  We do this at the top so that we don't add
+                    # a new page on the last iteration and then never use it!
+                    $page = $self->add_page_break($driver);
+                    $avail = $page->body->inside_height
                 }
-            } else {
-                my $pageadded = 0 ;
-                my $avail = $currpage->body->inside_height
-                    - $currpage->body->layout_manager->used->[1];
-                if($avail >= $c->height) {
-                    $currpage->add_component($c);
-                    $driver->prepare($c);
-                    $c->layout_manager->do_layout($c);
-                } else {
-                    if($pageadded) {
-                        die("Stopping possible endless loop: $c too big for page");
-                    }
-                    $pageadded = 1;
-                    $self->add_page_break($driver);
-                    push(@pages, $currpage);
-                }
+
+                # Ask the TL to slice off a chunk.  Ask it for however much
+                # space we have available ($avail).  If the TL doesn't have
+                # that much, it will give us all it has.  If it has more, we'll
+                # re-loop.
+                my $new_ta = $tl->slice($used, $avail);
+                $used += $new_ta->height;
+
+                # Add whatever we got to the page body.
+                $page->body->add_component($new_ta, 'n');
+                # Relayout the page.
+                $page->layout_manager->do_layout($page);
+
+                # Get the new avail
+                $avail = $page->body->inside_height - $page->body->layout_manager->used->[1];
             }
+        } elsif($c->isa('Graphics::Primitive::Container')) {
+            print "## Container\n";
         }
     }
 
     foreach my $p (@pages) {
-
+        print "### P\n";
         # Prepare all the pages...
         $driver->prepare($p);
         # Layout each page...
+
         if($p->layout_manager) {
             $p->layout_manager->do_layout($p);
+            $p->body->layout_manager->do_layout($p->body);
         }
         $driver->finalize($p);
         $driver->reset;
         $driver->draw($p);
-        # use Forest::Tree::Writer::ASCIIWithBranches;
-        # my $t = Forest::Tree::Writer::ASCIIWithBranches->new(tree => $p->get_tree);
-        # print $t->as_string;
+
+        use Forest::Tree::Writer::ASCIIWithBranches;
+        my $t = Forest::Tree::Writer::ASCIIWithBranches->new(tree => $p->get_tree);
+        print $t->as_string;
     }
 
     return \@pages;
@@ -178,7 +159,7 @@ sub add_page_break {
     if(defined($page)) {
         $newpage = $page;
     } else {
-        die('Must add a first page to create implicit ones.') unless defined($self->last_page);
+        die('Must add a first page to create implicit ones') unless defined($self->last_page);
         my $last = $self->last_page;
         $newpage = Document::Writer::Page->new(
             color   => $last->color,
@@ -192,7 +173,6 @@ sub add_page_break {
 
     $self->add_component($newpage);
     $self->last_page($newpage);
-
     return $newpage;
 }
 
@@ -208,7 +188,7 @@ Document::Writer - Library agnostic document creation
 
     use Document::Writer;
     use Graphics::Color::RGB;
-    # Use whatever you like
+    # Use whatever you like, but this is best!
     use Graphics::Primitive::Driver::CairoPango;
 
     my $doc = Document::Writer->new;
@@ -223,6 +203,9 @@ Document::Writer - Library agnostic document creation
 
     $doc->add_page_break($driver, $page);
     ...
+    my $textarea = Document::Writer::TextArea->new(
+        text => 'Lorem ipsum...'
+    );
     $doc->add_component($textarea);
     $self->draw($driver);
     $driver->write('/Users/gphat/foo.pdf');
@@ -234,39 +217,29 @@ L<Graphics::Primitive> stack.  It aims to provide convenient abstractions for
 creating documents and a library-agnostic base for the embedding of other
 components that use Graphics::Primitive.
 
-When you create a new Document::Writer, it has no pages.  You can add pages
-to the document using either C<add_page_break($driver, [ $page ])>.  The first
+When you create a new Document::Writer, it has no pages.  You can add a page
+to the document using C<add_page_break($driver, [ $page ])>.  The first
 time this is called, a page must be supplied.  Subsequent calls will clone the
-last page that was passed in.
-
-=head1 WARNING
-
-This is an early release meant to shake support out of the underlying
-libraries.  Further abstractions are forthcoming to make adding content to the
-pages easier than using L<Graphics::Primitive> directly.
+last page that was passed in.  If you add components to the document, then
+they will automatically be paginated at render time, if necessary.  You only
+need to add the first page and any manual page breaks.
 
 =head1 METHODS
 
-=over 4
-
-=item I<add_component>
+=head2 add_component
 
 Add a component to this document.
 
-=item I<add_page_break ($driver, [ $page ])>
+=head2 add_page_break ($driver, [ $page ])
 
 Add a page break to the document.  The first time this is called, a page must
 be supplied.  Subsequent calls will clone the last page that was passed in.
 
-=item I<clear_components>
+=head2 clear_components
 
 Remove all pages from this document.
 
-=item I<last_component>
-
-The last component in the list.
-
-=item I<draw ($driver)>
+=head2 draw ($driver)
 
 Convenience method that hides all the Graphics::Primitive magic when you
 give it a driver.  After this method completes the entire document will have
@@ -274,7 +247,7 @@ been rendered into the driver.  You can retrieve the output by using
 L<Driver's|Graphics::Primitive::Driver> I<data> or I<write> methods.  Returns
 the list of Page's as an arrayref.
 
-=item I<find ($CODEREF)>
+=head2 find ($CODEREF)
 
 Compatability and convenience method matching C<find> in
 Graphics::Primitive::Container.
@@ -293,17 +266,19 @@ left around after a remove_component) are automatically skipped.
 If no matching components are found then a new list is returned so that simple
 calls liked $container->find(...)->each(...) don't explode.
 
-=item I<get_paper_dimensions>
+=head2 get_paper_dimensions
 
 Given a paper name, such as letter or a4, returns a height and width in points
 as an array.  Uses L<Paper::Specs>.
 
-=item I<get_tree>
+=head2 get_tree
 
 Returns a L<Forest::Tree> object with this document at it's root and each
 page (and it's children) as children.  Provided for convenience.
 
-=back
+=head2 last_component
+
+The last component in the list.
 
 =head1 SEE ALSO
 
@@ -313,8 +288,6 @@ L<Graphics::Primitive>, L<Paper::Specs>
 
 Cory Watson, C<< <gphat@cpan.org> >>
 
-Infinity Interactive, L<http://www.iinteractive.com>
-
 =head1 BUGS
 
 Please report any bugs or feature requests to C<bug-geometry-primitive at rt.cpan.org>, or through
@@ -322,10 +295,6 @@ the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Geometry-P
 automatically be notified of progress on your bug as I make changes.
 
 =head1 COPYRIGHT & LICENSE
-
-Copyright 2008 by Infinity Interactive, Inc.
-
-L<http://www.iinteractive.com>
 
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.

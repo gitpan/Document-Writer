@@ -8,11 +8,11 @@ build_requires 'Test::More';
 
 test_requires 'Pod::Coverage::Moose';
 
-requires 'Forest' => '0.02';
-requires 'Graphics::Primitive' => '0.33';
-requires 'Layout::Manager' => '0.18';
-requires 'Moose' => '0.57';
-requires 'MooseX::AttributeHelpers' => '0.13';
+requires 'Forest' => '0.06';
+requires 'Graphics::Primitive' => '0.39';
+requires 'Layout::Manager' => '0.20';
+requires 'Moose' => '0.72';
+requires 'MooseX::AttributeHelpers' => '0.14';
 requires 'Paper::Specs' => '0.10';
 
 WriteAll;
