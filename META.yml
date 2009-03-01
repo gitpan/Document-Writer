@@ -23,4 +23,4 @@ requires:
   Moose: 0.72
   MooseX::AttributeHelpers: 0.14
   Paper::Specs: 0.10
-version: 0.10
+version: 0.11

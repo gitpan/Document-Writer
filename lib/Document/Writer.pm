@@ -9,7 +9,7 @@ use Paper::Specs units => 'pt';
 use Document::Writer::Page;
 
 our $AUTHORITY = 'cpan:GPHAT';
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 
 has 'components' => (
     metaclass => 'Collection::Array',
@@ -58,7 +58,7 @@ sub draw {
             # is $tlh and we have $avail space available on the page.
             while($used < $tlh) {
                 # We've not yet used all of the TextLayout
-                if(($avail <= 0) || ($avail < $tlh)) {
+                if($avail <= 0) {
                     # If we ran out of available space then we need to add a
                     # new page.  We do this at the top so that we don't add
                     # a new page on the last iteration and then never use it!
@@ -81,13 +81,23 @@ sub draw {
                 # Get the new avail
                 $avail = $page->body->inside_height - $page->body->layout_manager->used->[1];
             }
+
         } elsif($c->isa('Graphics::Primitive::Container')) {
-            print "## Container\n";
+
+            my $page = $self->last_page;
+            my $avail = $page->body->inside_height - $page->body->layout_manager->used->[1];
+
+            $driver->prepare($c);
+            if($avail < $c->minimum_height) {
+                $page = $self->add_page_break($driver);
+                $avail = $page->body->inside_height;
+            }
+            $page->body->add_component($c, 'n');
+            $page->layout_manager->do_layout($page);
         }
     }
 
     foreach my $p (@pages) {
-        print "### P\n";
         # Prepare all the pages...
         $driver->prepare($p);
         # Layout each page...
@@ -206,8 +216,12 @@ Document::Writer - Library agnostic document creation
     my $textarea = Document::Writer::TextArea->new(
         text => 'Lorem ipsum...'
     );
+    $textarea->font->size(13);
+    $textarea->padding(10);
+    $textarea->line_height(17);
+
     $doc->add_component($textarea);
-    $self->draw($driver);
+    $doc->draw($driver);
     $driver->write('/Users/gphat/foo.pdf');
 
 =head1 DESCRIPTION
@@ -223,6 +237,12 @@ time this is called, a page must be supplied.  Subsequent calls will clone the
 last page that was passed in.  If you add components to the document, then
 they will automatically be paginated at render time, if necessary.  You only
 need to add the first page and any manual page breaks.
+
+=head1 NOTICE
+
+Document::Writer is a hobby project that I work on in my spare time.  It's
+yet to be used for any real work and it's likely I've forgotten something
+important.  Free free to contact me via IRC or email if you run into problems.
 
 =head1 METHODS
 
