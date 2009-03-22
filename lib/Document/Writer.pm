@@ -9,7 +9,7 @@ use Paper::Specs units => 'pt';
 use Document::Writer::Page;
 
 our $AUTHORITY = 'cpan:GPHAT';
-our $VERSION = '0.11';
+our $VERSION = '0.12';
 
 has 'components' => (
     metaclass => 'Collection::Array',
@@ -54,16 +54,28 @@ sub draw {
             my $tlh = $tl->height;
             my $used = 0;
 
+            # This is around to keep control of runaway page adding.  We
+            # should never end up with an empty page.
+            my $newpage = 0;
             # So.  We need to 'use' all of the TextLayout we got.  The height
             # is $tlh and we have $avail space available on the page.
             while($used < $tlh) {
-                # We've not yet used all of the TextLayout
+                # We've not yet used all of the TextLayout...
                 if($avail <= 0) {
-                    # If we ran out of available space then we need to add a
+
+                    # Stop runaway page adding.
+                    if($newpage >= 1) {
+                        last;
+                    }
+
+                    # But we ran out of available space. So we need to add a
                     # new page.  We do this at the top so that we don't add
                     # a new page on the last iteration and then never use it!
                     $page = $self->add_page_break($driver);
-                    $avail = $page->body->inside_height
+                    $avail = $page->body->inside_height - $page->body->layout_manager->used->[1];
+                    $newpage += 1;
+                } else {
+                    $newpage = 0;
                 }
 
                 # Ask the TL to slice off a chunk.  Ask it for however much
@@ -71,15 +83,18 @@ sub draw {
                 # that much, it will give us all it has.  If it has more, we'll
                 # re-loop.
                 my $new_ta = $tl->slice($used, $avail);
-                $used += $new_ta->height;
 
-                # Add whatever we got to the page body.
-                $page->body->add_component($new_ta, 'n');
-                # Relayout the page.
-                $page->layout_manager->do_layout($page);
-
-                # Get the new avail
-                $avail = $page->body->inside_height - $page->body->layout_manager->used->[1];
+                if(defined($new_ta)) {
+                    $used += $new_ta->height;
+                    # Add whatever we got to the page body.
+                    $page->body->add_component($new_ta, 'n');
+                    # Relayout the page.
+                    $page->layout_manager->do_layout($page);
+                    # Get the new avail
+                    $avail = $page->body->inside_height - $page->body->layout_manager->used->[1];
+                } else {
+                    $avail = 0;
+                }
             }
 
         } elsif($c->isa('Graphics::Primitive::Container')) {
